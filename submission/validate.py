@@ -1,4 +1,7 @@
-"""Stand-alone validator: re-checks H1..H6 against the produced schedule."""
+"""
+Stand-alone validator: re-checks H1..H6 against the produced schedule.
+Ensures that all hard constraints are met before final delivery.
+"""
 import json, os, sys
 from collections import Counter, defaultdict
 
