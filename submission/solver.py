@@ -294,7 +294,7 @@ for c in team_codes:
     if alt_venue[c]:
         model.Add(sum(is_alt[mi] for mi in range(N_MATCHES) if matches[mi].home == c) <= 2)
 
-# --- H6 blackout dates -----------------------------------------------------
+# --- H6 blackout dates: Ensure no matches are scheduled on restricted days/venues ---
 for m in matches:
     primary_v = home_venue[m.home]
     altv = alt_venue[m.home]
