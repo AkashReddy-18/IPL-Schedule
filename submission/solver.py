@@ -316,6 +316,7 @@ print("[model] H1-H6 installed.")
 # ===========================================================================
 # CHRONOLOGY: pos[T, m, k] booleans
 # ===========================================================================
+# Create position-based variables to track each team's chronological match sequence
 pos: Dict[Tuple[str, int, int], cp_model.IntVar] = {}
 seq_day: Dict[Tuple[str, int], cp_model.IntVar] = {}
 venue_at_pos: Dict[Tuple[str, int], cp_model.IntVar] = {}
