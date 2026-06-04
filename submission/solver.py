@@ -400,6 +400,7 @@ for m in matches:
 # ===========================================================================
 # PENALTIES
 # ===========================================================================
+# Define penalty terms, starting with C1: Travel costs between venues
 pen_terms: List = []
 team_total_dist: Dict[str, cp_model.IntVar] = {}
 
