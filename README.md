@@ -98,8 +98,6 @@ schedule's per-term breakdown (from `score.py`):
 
 ## AI Assistant Declaration
 
-Per the hackathon ground rules (PDF, "Code of Conduct"):
-
 This submission was authored with assistance from **Anthropic Claude**
 (Claude Code). Claude was used for code drafting, linearisation strategy
 (CP-SAT modelling of the convex penalty terms), and documentation. All
