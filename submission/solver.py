@@ -445,7 +445,7 @@ for c in team_codes:
     model.Add(td == sum(dist_terms))
     team_total_dist[c] = td
 
-    # C2 convex distance fatigue via bucketed lookup.
+    # C2 convex distance fatigue via bucketed lookup (handling p=1.5 exponent)
     b_idx = model.NewIntVar(0, DIST_TABLE_SIZE - 1, f"b_{c}")
     model.AddDivisionEquality(b_idx, td, DIST_BUCKET)
     c2 = model.NewIntVar(0, max(C2_TABLE), f"c2_{c}")
