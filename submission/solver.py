@@ -160,6 +160,7 @@ class Match:
         return frozenset({self.home, self.away})
 
 
+# Generate the 56 required matches: every team plays everyone else once at home.
 matches: List[Match] = []
 for i, ci in enumerate(team_codes):
     for cj in team_codes:
