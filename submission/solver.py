@@ -77,17 +77,21 @@ if not INSTANCE_DIR:
 
 OUTPUT_PATH = os.path.join(HERE, "schedule.json")
 
-SCALE = 10_000           # Cr -> integer centi-lakhs (1e-4 Cr resolution)
+# Scaling factor to convert Cr to integer centi-lakhs (1e-4 Cr resolution)
+# This allows the integer-only CP-SAT solver to handle currency with precision.
+SCALE = 10_000           
 DAYS = 56
 N_TEAMS = 8
 MATCHES_PER_TEAM = 14
 N_MATCHES = 56
+# Default time limit for the solver in seconds
 TIME_LIMIT_S = float(os.environ.get("SOLVER_TIME_LIMIT", "300"))
 
 
 # ---------------------------------------------------------------------------
 # Data
 # ---------------------------------------------------------------------------
+# Helper to load JSON data from the instance directory
 def load(name):
     with open(os.path.join(INSTANCE_DIR, name)) as fh:
         return json.load(fh)
