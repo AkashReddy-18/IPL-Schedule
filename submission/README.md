@@ -19,7 +19,8 @@ Per the hackathon rules: this submission was authored with assistance from
 linearisation strategy, and documentation. All design decisions, parameter
 tuning, validation, and final inspection were performed by the team.
 
-## How to run
+### Implementation Notes
+- The solver uses integer centi-lakhs (Cr * 10,000) for all cost calculations to maintain high precision while adhering to the integer-only constraints of the CP-SAT engine.
 
 ### 1. Install dependencies
 ```bash
