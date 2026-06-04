@@ -551,6 +551,7 @@ model.Maximize(sum(rev_terms) - sum(pen_terms))
 # ===========================================================================
 # SOLVE
 # ===========================================================================
+# Configure the solver with time limits and parallel processing workers
 solver = cp_model.CpSolver()
 solver.parameters.max_time_in_seconds = TIME_LIMIT_S
 solver.parameters.num_search_workers = 8
