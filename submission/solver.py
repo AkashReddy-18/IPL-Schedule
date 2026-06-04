@@ -366,6 +366,7 @@ print("[model] Position channelling installed.")
 # ===========================================================================
 # REVENUE
 # ===========================================================================
+# Calculate total revenue from broadcaster bids and alternate venue bonuses
 rev_terms: List = []
 
 # R1 broadcaster bid -- per-day lookup table per match.
