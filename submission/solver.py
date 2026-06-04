@@ -455,7 +455,7 @@ for c in team_codes:
 print("[model] C1 + C2 installed.")
 
 
-# --- C3 stay penalty ------------------------------------------------------
+# --- C3 stay penalty: Apply penalties for consecutive days in non-home cities ---
 MAX_STAY_PEN = max(STAY_TABLE)
 for c in team_codes:
     M_T = matches_with_team[c]
