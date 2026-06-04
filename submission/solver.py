@@ -232,6 +232,7 @@ print(f"[setup] {N_MATCHES} matches, {len(blackout_set)} blackouts, "
 # ===========================================================================
 # CP-SAT MODEL
 # ===========================================================================
+# Initialize the CP-SAT model and setup basic schedule constraints
 model = cp_model.CpModel()
 
 # --- match_day[m]: day on which match m is played (1..56), all-different ---
