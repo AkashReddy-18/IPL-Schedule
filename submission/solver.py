@@ -516,7 +516,7 @@ for c in team_codes:
 print("[model] C4 installed.")
 
 
-# --- C5 gap penalty -------------------------------------------------------
+# --- C5 gap penalty: Penalize deviations from the target rest gap ---
 MAX_GAP_PEN = max(GAP_TABLE)
 for c in team_codes:
     for k in range(2, MATCHES_PER_TEAM + 1):
