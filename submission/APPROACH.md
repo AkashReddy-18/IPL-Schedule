@@ -1,4 +1,4 @@
-# Approach — CP-SAT Model for the PowerPlay T20 Scheduling Problem
+# Optimization Approach: PowerPlay T20 Scheduling Solution
 
 ## 1. Problem at a glance
 
