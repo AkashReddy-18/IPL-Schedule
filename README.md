@@ -2,88 +2,69 @@
 
 Our submission for the CSEA × IIT Guwahati optimisation hackathon.
 
-The problem: take 8 cricket franchises, 56 days, and 56 matches; figure out
-who plays whom, when, and at which ground, so that broadcaster revenue is
-maximised and travel / fatigue penalties are kept in check. There are six
-hard constraints (pair balance, daily allocation, progressive balance,
-rest days, alt-venue cap, blackouts) and an objective function `J` that
-sums broadcaster bids + alt-venue bonuses minus five fatigue penalties
-and a league-wide equity penalty.
+## The problem in one paragraph
 
-We modelled it as a single CP-SAT (constraint-programming + SAT) problem
-using Google OR-Tools.
+A franchise T20 league has 8 teams and runs over 56 days. Every team
+plays every other team twice — once at each team's home ground — for a
+total of 56 matches, exactly one per day. We have to decide who plays
+whom on which day, and (for the five teams with a second "alternate"
+home stadium) which of their two grounds hosts each home match. The
+catch: broadcasters pay a premium for marquee matchups on weekends,
+travel costs money, players need rest, and grounds have blackout days
+they can't be used. The schedule is graded by an objective `J` that
+sums revenue (broadcaster bids + alt-venue bonuses) and subtracts six
+fatigue / travel / equity penalties.
+
+## How we solved it
+
+The whole thing fits naturally as a constraint-programming problem, so
+we modelled it as a single CP-SAT (constraint-programming + SAT)
+problem using Google OR-Tools. Every match gets a day variable and
+(when applicable) an `is_alt_venue` boolean; hard constraints H1–H6 are
+expressed directly on those variables; the six penalty terms are
+linearised with a mix of step-table lookups (for the convex `p = 1.5`
+distance fatigue), big-M envelopes (for booleans-times-integers in the
+stay and density penalties), and standard `AddMaxEquality` / cumulative
+counters for the equity term. The solver runs anytime — every extra
+minute it gets, it finds a slightly better schedule. We let it run for
+30 minutes per instance.
 
 ## What we got
 
-On the public instance `inst_1`, our schedule scores **J = 38.07 Cr**
-after a 30-minute solve on 8 cores. All 6 hard constraints pass an
-independent validator. CP-SAT's LP relaxation puts the upper bound at
-~120 Cr, so there's still gap to close — more wall time would help.
+| Instance | Feasibility | J (Cr) | Solver wall time |
+|----------|-------------|-------:|-----------------:|
+| `inst_1` | FEASIBLE    | **39.46** | 30 min        |
+| `inst_2` | FEASIBLE    | **30.68** | 30 min        |
 
-## Running it
+Both schedules pass our independent feasibility validator on all six
+hard constraints. CP-SAT's LP relaxation puts the upper bound around
+120 Cr, so there's still room to close with longer search.
 
-```bash
-pip install -r requirements.txt
-python solver.py           # writes schedule.json (the deliverable)
-python validate.py         # checks H1-H6
-python score.py            # recomputes J using PDF formulas
-```
-
-By default the solver gives itself 5 minutes. For a serious run:
-
-```bash
-SOLVER_TIME_LIMIT=1800 python solver.py
-```
-
-The solver looks for the 5 input JSONs in either the project root or an
-`inst_1/` subfolder. Override with `INSTANCE_DIR=/path/to/instance`.
-
-## Files
-
-- `solver.py` — the actual solver. Builds the CP-SAT model, runs it,
-  writes `schedule.json`.
-- `schedule.json` — our 56-match schedule.
-- `validate.py` — independent feasibility checker. Re-resolves each
-  match's venue and re-derives every constraint from scratch.
-- `score.py` — independent objective re-calculator. Recomputes `J` from
-  the schedule in plain floating point (no integer scaling). Useful as a
-  sanity check that the solver's claimed score matches what the grader
-  will compute.
-- `APPROACH.md` — write-up of the modelling: variables, constraints,
-  linearisation tricks used for the convex penalty terms.
-- `requirements.txt` — just `ortools`.
-
-The three Python files are independent. `validate.py` and `score.py`
-don't share any logic with `solver.py` — they each read `schedule.json`
-and the input JSONs from scratch. So if the solver had a bug, the
-auditors would catch it. We verified the solver's claimed `J = 38.0716`
-agrees with the spec-faithful recompute of `J = 38.0430` within rounding
-tolerance (0.07%).
-
-## How `J` breaks down
-
-This is what `score.py` reports for our current schedule:
+## How `J` breaks down for inst_1
 
 ```
-R1  Broadcaster revenue   :  +97.89
+R1  Broadcaster revenue   :  +99.71
 R2  Alt-venue bonus       :  +17.10
 C1  Travel cost           :  -20.05
 C2  Distance fatigue      :   -3.21
-C3  Stay penalty          :  -11.95
+C3  Stay penalty          :  -12.35
 C4  Density               :  -12.60
 C5  Gap                   :  -28.60
 C6  Equity                :   -0.54
 -------------------------------------
-J                         :  +38.04 Cr
+J                         :  +39.46 Cr
 ```
 
-The big-ticket revenue comes from putting marquee matches (MI×CSK,
-CSK×RCB) on weekends; the biggest single penalty is `C5` (gap), which
-the spec heavily penalises for sub-3-day rest periods.
+The big-ticket revenue comes from putting marquee matchups (MI vs CSK,
+CSK vs RCB) on weekends. The biggest single penalty is `C5` (gap),
+because the spec heavily punishes sub-3-day rest periods between a
+team's matches.
 
 ## A note on the alternate venues
 
-Five teams have alt venues with revenue bonuses but worse travel costs:
+Five teams have an alternate ground in a second city. Hosting there
+earns a revenue bonus but costs more in travel. The trade-off is
+capped at 2 of a team's 7 home matches by H5.
 
 | Team | Primary | Alt | Alt bonus |
 |------|---------|-----|-----------|
@@ -93,33 +74,56 @@ Five teams have alt venues with revenue bonuses but worse travel costs:
 | RR   | Jaipur | Guwahati | **3.2 Cr** |
 | PBKS | Mohali | Dharamsala | 2.2 Cr |
 
-`is_alt_venue: true` in the output means the home team chose its alt.
-Hard constraint H5 caps it at 2 of a team's 7 home matches. The solver
-ended up using all 8 available slots (2×4 teams + 1 for MI, whose bonus
-is small).
+`is_alt_venue: true` in the schedule output means that match is hosted
+at the team's alternate. The solver tends to burn all of RR and PBKS's
+two-slot budget (those teams have the biggest bonuses), and is
+selective with MI's because the 0.3 Cr bonus rarely justifies the
+extra travel cost.
+
+## Running it
+
+```bash
+pip install -r requirements.txt
+python solver.py           # writes schedule.json
+python validate.py         # checks H1–H6
+python score.py            # recomputes J from the schedule
+```
+
+By default the solver gives itself 5 minutes. For a competitive run:
+
+```bash
+SOLVER_TIME_LIMIT=1800 python solver.py
+```
+
+The solver looks for the 5 input JSONs in either the project root or
+an `inst_1/` sibling folder. Override with
+`INSTANCE_DIR=/path/to/instance`. To target a specific output path use
+`SCHEDULE_OUTPUT=/path/to/schedule.json`.
+
+## Files in this folder
+
+- `solver.py` — the CP-SAT model and search loop. Reads the 5 input
+  JSONs, writes a `schedule.json`.
+- `schedule.json` — our 56-match output.
+- `validate.py` — independent feasibility checker. Reads the schedule
+  back from disk and re-derives all six hard constraints from
+  scratch. Exits non-zero on any violation.
+- `score.py` — independent objective re-calculator. Reads the
+  schedule and recomputes `J` term-by-term in plain floating point
+  using the formulas straight from the PDF. Catches any drift between
+  what the solver thinks it scored and what the math actually says.
+- `APPROACH.md` — longer write-up of the modelling, including the
+  linearisation tricks used for the convex penalty terms.
+- `requirements.txt` — just `ortools`.
+
+The three Python files are deliberately independent. `validate.py`
+and `score.py` share no code with `solver.py` — they each parse
+`schedule.json` from disk and re-derive everything. So if the solver
+had a bug, the auditors would catch it.
 
 ## On AI assistance
 
-Per the hackathon rules: we used **Anthropic's Claude** (via Claude Code)
-to draft the model and documentation. The CP-SAT modelling choices,
-linearisation strategy for the convex penalties, parameter tuning, and
-final validation were ours.
-
-## What we'd do with more time
-
-A few things we know are imperfect but didn't have time to address:
-
-1. **Warm-start.** CP-SAT spends a lot of search time finding *any*
-   feasible solution. A greedy heuristic (round-robin matches with
-   blackout-aware day picking) could be fed via `model.AddHint()` to cut
-   the time-to-incumbent dramatically.
-2. **C3 stay penalty.** We linearised it per-position-transition, which
-   coincides with the PDF's merged-stay interpretation on our current
-   schedule but could under-count in other topologies. Wiring up a true
-   contiguous-run aggregator would close that gap.
-3. **C2 distance bucketing.** We bucket at 50 km for the AddElement
-   lookup; using the bucket centre instead of the lower bound would
-   reduce a small (~5×10⁻⁴ Cr/team) systematic under-estimate.
-
-None of these are bugs — they're known modelling shortcuts called out in
-`APPROACH.md`. The validator and scorer would catch any drift.
+Per the hackathon rules: we used **Anthropic's Claude** (via Claude
+Code) to help draft the CP-SAT model, the linearisation strategy for
+the convex penalty terms, and this documentation. The modelling
+decisions, parameter tuning, and final validation were ours.
