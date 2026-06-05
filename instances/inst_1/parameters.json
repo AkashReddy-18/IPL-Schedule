@@ -1,0 +1,26 @@
+{
+  "kappa": 1.5e-06,
+  "p_exponent": 1.5,
+  "D0_limit_km": 7500.0,
+  "eta": 0.05,
+  "q_exponent": 2.0,
+  "x0_limit_days": 2.0,
+  "delta_0_rust_cr": 0.15,
+  "delta_2_tired_cr": 0.3,
+  "delta_3_cooked_cr": 1.2,
+  "tau_star_days": 3.0,
+  "a_low_cr": 0.5,
+  "a_high_cr": 0.15,
+  "lambda_eq": 0.0002,
+  "delta_0_disparity_km": 2500.0,
+  "g_multiplier": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.25,
+    1.6
+  ]
+}

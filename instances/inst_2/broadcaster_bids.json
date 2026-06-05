@@ -1,0 +1,310 @@
+[
+  {
+    "team_a": "MI",
+    "team_b": "CSK",
+    "alpha_cr": 7.0,
+    "beta_cr": 4.5,
+    "gamma_cr": 2.5,
+    "preferred_days": [
+      9,
+      37
+    ]
+  },
+  {
+    "team_a": "MI",
+    "team_b": "RCB",
+    "alpha_cr": 6.2,
+    "beta_cr": 3.8,
+    "gamma_cr": 2.0,
+    "preferred_days": [
+      10,
+      38
+    ]
+  },
+  {
+    "team_a": "MI",
+    "team_b": "DC",
+    "alpha_cr": 3.5,
+    "beta_cr": 2.4,
+    "gamma_cr": 1.4,
+    "preferred_days": [
+      23,
+      51
+    ]
+  },
+  {
+    "team_a": "MI",
+    "team_b": "KKR",
+    "alpha_cr": 4.2,
+    "beta_cr": 2.8,
+    "gamma_cr": 1.6,
+    "preferred_days": [
+      9,
+      37
+    ]
+  },
+  {
+    "team_a": "MI",
+    "team_b": "SRH",
+    "alpha_cr": 3.2,
+    "beta_cr": 2.2,
+    "gamma_cr": 1.2,
+    "preferred_days": [
+      9,
+      37
+    ]
+  },
+  {
+    "team_a": "MI",
+    "team_b": "RR",
+    "alpha_cr": 1.84,
+    "beta_cr": 1.29,
+    "gamma_cr": 0.77,
+    "preferred_days": [
+      24,
+      37
+    ]
+  },
+  {
+    "team_a": "MI",
+    "team_b": "PBKS",
+    "alpha_cr": 1.71,
+    "beta_cr": 1.2,
+    "gamma_cr": 0.72,
+    "preferred_days": [
+      10,
+      24
+    ]
+  },
+  {
+    "team_a": "CSK",
+    "team_b": "RCB",
+    "alpha_cr": 6.5,
+    "beta_cr": 4.0,
+    "gamma_cr": 2.2,
+    "preferred_days": [
+      23,
+      51
+    ]
+  },
+  {
+    "team_a": "CSK",
+    "team_b": "DC",
+    "alpha_cr": 2.06,
+    "beta_cr": 1.44,
+    "gamma_cr": 0.86,
+    "preferred_days": [
+      37,
+      38
+    ]
+  },
+  {
+    "team_a": "CSK",
+    "team_b": "KKR",
+    "alpha_cr": 4.5,
+    "beta_cr": 3.0,
+    "gamma_cr": 1.8,
+    "preferred_days": [
+      24,
+      52
+    ]
+  },
+  {
+    "team_a": "CSK",
+    "team_b": "SRH",
+    "alpha_cr": 3.6,
+    "beta_cr": 2.4,
+    "gamma_cr": 1.4,
+    "preferred_days": [
+      10,
+      38
+    ]
+  },
+  {
+    "team_a": "CSK",
+    "team_b": "RR",
+    "alpha_cr": 3.4,
+    "beta_cr": 2.3,
+    "gamma_cr": 1.3,
+    "preferred_days": [
+      24,
+      52
+    ]
+  },
+  {
+    "team_a": "CSK",
+    "team_b": "PBKS",
+    "alpha_cr": 1.83,
+    "beta_cr": 1.28,
+    "gamma_cr": 0.77,
+    "preferred_days": [
+      10,
+      37
+    ]
+  },
+  {
+    "team_a": "RCB",
+    "team_b": "DC",
+    "alpha_cr": 1.89,
+    "beta_cr": 1.32,
+    "gamma_cr": 0.79,
+    "preferred_days": [
+      38,
+      51
+    ]
+  },
+  {
+    "team_a": "RCB",
+    "team_b": "KKR",
+    "alpha_cr": 2.77,
+    "beta_cr": 1.94,
+    "gamma_cr": 1.16,
+    "preferred_days": [
+      24,
+      51
+    ]
+  },
+  {
+    "team_a": "RCB",
+    "team_b": "SRH",
+    "alpha_cr": 2.94,
+    "beta_cr": 2.06,
+    "gamma_cr": 1.24,
+    "preferred_days": [
+      38,
+      51
+    ]
+  },
+  {
+    "team_a": "RCB",
+    "team_b": "RR",
+    "alpha_cr": 1.83,
+    "beta_cr": 1.28,
+    "gamma_cr": 0.77,
+    "preferred_days": [
+      10,
+      24
+    ]
+  },
+  {
+    "team_a": "RCB",
+    "team_b": "PBKS",
+    "alpha_cr": 3.0,
+    "beta_cr": 2.0,
+    "gamma_cr": 1.1,
+    "preferred_days": [
+      10,
+      38
+    ]
+  },
+  {
+    "team_a": "DC",
+    "team_b": "KKR",
+    "alpha_cr": 2.68,
+    "beta_cr": 1.88,
+    "gamma_cr": 1.13,
+    "preferred_days": [
+      23,
+      51
+    ]
+  },
+  {
+    "team_a": "DC",
+    "team_b": "SRH",
+    "alpha_cr": 2.74,
+    "beta_cr": 1.92,
+    "gamma_cr": 1.15,
+    "preferred_days": [
+      10,
+      38
+    ]
+  },
+  {
+    "team_a": "DC",
+    "team_b": "RR",
+    "alpha_cr": 1.92,
+    "beta_cr": 1.34,
+    "gamma_cr": 0.8,
+    "preferred_days": [
+      10,
+      24
+    ]
+  },
+  {
+    "team_a": "DC",
+    "team_b": "PBKS",
+    "alpha_cr": 1.79,
+    "beta_cr": 1.25,
+    "gamma_cr": 0.75,
+    "preferred_days": [
+      9,
+      23
+    ]
+  },
+  {
+    "team_a": "KKR",
+    "team_b": "SRH",
+    "alpha_cr": 2.73,
+    "beta_cr": 1.91,
+    "gamma_cr": 1.15,
+    "preferred_days": [
+      10,
+      51
+    ]
+  },
+  {
+    "team_a": "KKR",
+    "team_b": "RR",
+    "alpha_cr": 2.62,
+    "beta_cr": 1.83,
+    "gamma_cr": 1.1,
+    "preferred_days": [
+      10,
+      24
+    ]
+  },
+  {
+    "team_a": "KKR",
+    "team_b": "PBKS",
+    "alpha_cr": 2.71,
+    "beta_cr": 1.9,
+    "gamma_cr": 1.14,
+    "preferred_days": [
+      24,
+      37
+    ]
+  },
+  {
+    "team_a": "SRH",
+    "team_b": "RR",
+    "alpha_cr": 2.68,
+    "beta_cr": 1.88,
+    "gamma_cr": 1.13,
+    "preferred_days": [
+      9,
+      23
+    ]
+  },
+  {
+    "team_a": "SRH",
+    "team_b": "PBKS",
+    "alpha_cr": 2.48,
+    "beta_cr": 1.74,
+    "gamma_cr": 1.04,
+    "preferred_days": [
+      23,
+      38
+    ]
+  },
+  {
+    "team_a": "RR",
+    "team_b": "PBKS",
+    "alpha_cr": 2.08,
+    "beta_cr": 1.46,
+    "gamma_cr": 0.88,
+    "preferred_days": [
+      23,
+      37
+    ]
+  }
+]
