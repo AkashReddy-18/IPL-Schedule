@@ -1,16 +1,20 @@
-"""
-Stand-alone validator: re-checks H1..H6 against the produced schedule.
-Ensures that all hard constraints are met before final delivery.
-"""
+"""Stand-alone validator: re-checks H1..H6 against the produced schedule."""
 import json, os, sys
 from collections import Counter, defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-INST = os.path.join(os.path.dirname(HERE), "inst_1")
+ROOT = os.path.dirname(HERE)
+# Allow INSTANCE_DIR override (used to validate against inst_2, inst_3, ...).
+# Default falls back to inst_1 alongside the repo root.
+INST = os.environ.get("INSTANCE_DIR") or os.path.join(ROOT, "inst_1")
+SCHEDULE_PATH = os.environ.get("SCHEDULE_PATH") or os.path.join(HERE, "schedule.json")
 
 teams   = json.load(open(os.path.join(INST, "teams.json")))
 blkout  = json.load(open(os.path.join(INST, "blackouts.json")))
-sched   = json.load(open(os.path.join(HERE, "schedule.json")))
+# Official schema wraps matches in {"matches": [...]} -- accept either.
+_raw    = json.load(open(SCHEDULE_PATH))
+sched   = _raw["matches"] if isinstance(_raw, dict) else _raw
+print(f"[validate] instance={INST}  schedule={SCHEDULE_PATH}")
 
 home_v  = {t["code"]: t["home_venue"] for t in teams}
 alt_v   = {t["code"]: t.get("alt_venue") for t in teams}
