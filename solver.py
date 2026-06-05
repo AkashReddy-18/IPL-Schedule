@@ -75,23 +75,19 @@ if not INSTANCE_DIR:
 if not INSTANCE_DIR:
     raise FileNotFoundError("JSON inputs not found. Set INSTANCE_DIR env var.")
 
-OUTPUT_PATH = os.path.join(HERE, "schedule.json")
+OUTPUT_PATH = os.environ.get("SCHEDULE_OUTPUT") or os.path.join(HERE, "schedule.json")
 
-# Scaling factor to convert Cr to integer centi-lakhs (1e-4 Cr resolution)
-# This allows the integer-only CP-SAT solver to handle currency with precision.
-SCALE = 10_000           
+SCALE = 10_000           # Cr -> integer centi-lakhs (1e-4 Cr resolution)
 DAYS = 56
 N_TEAMS = 8
 MATCHES_PER_TEAM = 14
 N_MATCHES = 56
-# Default time limit for the solver in seconds
 TIME_LIMIT_S = float(os.environ.get("SOLVER_TIME_LIMIT", "300"))
 
 
 # ---------------------------------------------------------------------------
 # Data
 # ---------------------------------------------------------------------------
-# Helper to load JSON data from the instance directory
 def load(name):
     with open(os.path.join(INSTANCE_DIR, name)) as fh:
         return json.load(fh)
@@ -132,8 +128,10 @@ LAMBDA_EQ = params["lambda_eq"]
 DELTA0_DISP = params["delta_0_disparity_km"]
 G_MULT = list(params["g_multiplier"])  # length 8
 
-# Weekend days: assume calendar starts on Monday -> days with idx mod 7 in {5,6}
-WEEKEND_DAYS = {d for d in range(1, DAYS + 1) if ((d - 1) % 7) in (5, 6)}
+# Weekend days per the OFFICIAL evaluator (src/validator.py:is_weekend):
+#   "Day 1 is Sunday, Day 2 is Monday, ..., Day 7 is Saturday."
+#   Weekend = Saturday (d % 7 == 0) and Sunday (d % 7 == 1).
+WEEKEND_DAYS = {d for d in range(1, DAYS + 1) if (d % 7) in (0, 1)}
 
 
 def cr_to_int(x):
@@ -160,7 +158,6 @@ class Match:
         return frozenset({self.home, self.away})
 
 
-# Generate the 56 required matches: every team plays everyone else once at home.
 matches: List[Match] = []
 for i, ci in enumerate(team_codes):
     for cj in team_codes:
@@ -232,7 +229,6 @@ print(f"[setup] {N_MATCHES} matches, {len(blackout_set)} blackouts, "
 # ===========================================================================
 # CP-SAT MODEL
 # ===========================================================================
-# Initialize the CP-SAT model and setup basic schedule constraints
 model = cp_model.CpModel()
 
 # --- match_day[m]: day on which match m is played (1..56), all-different ---
@@ -294,7 +290,7 @@ for c in team_codes:
     if alt_venue[c]:
         model.Add(sum(is_alt[mi] for mi in range(N_MATCHES) if matches[mi].home == c) <= 2)
 
-# --- H6 blackout dates: Ensure no matches are scheduled on restricted days/venues ---
+# --- H6 blackout dates -----------------------------------------------------
 for m in matches:
     primary_v = home_venue[m.home]
     altv = alt_venue[m.home]
@@ -316,7 +312,6 @@ print("[model] H1-H6 installed.")
 # ===========================================================================
 # CHRONOLOGY: pos[T, m, k] booleans
 # ===========================================================================
-# Create position-based variables to track each team's chronological match sequence
 pos: Dict[Tuple[str, int, int], cp_model.IntVar] = {}
 seq_day: Dict[Tuple[str, int], cp_model.IntVar] = {}
 venue_at_pos: Dict[Tuple[str, int], cp_model.IntVar] = {}
@@ -366,7 +361,6 @@ print("[model] Position channelling installed.")
 # ===========================================================================
 # REVENUE
 # ===========================================================================
-# Calculate total revenue from broadcaster bids and alternate venue bonuses
 rev_terms: List = []
 
 # R1 broadcaster bid -- per-day lookup table per match.
@@ -400,7 +394,6 @@ for m in matches:
 # ===========================================================================
 # PENALTIES
 # ===========================================================================
-# Define penalty terms, starting with C1: Travel costs between venues
 pen_terms: List = []
 team_total_dist: Dict[str, cp_model.IntVar] = {}
 
@@ -445,7 +438,7 @@ for c in team_codes:
     model.Add(td == sum(dist_terms))
     team_total_dist[c] = td
 
-    # C2 convex distance fatigue via bucketed lookup (handling p=1.5 exponent)
+    # C2 convex distance fatigue via bucketed lookup.
     b_idx = model.NewIntVar(0, DIST_TABLE_SIZE - 1, f"b_{c}")
     model.AddDivisionEquality(b_idx, td, DIST_BUCKET)
     c2 = model.NewIntVar(0, max(C2_TABLE), f"c2_{c}")
@@ -455,43 +448,110 @@ for c in team_codes:
 print("[model] C1 + C2 installed.")
 
 
-# --- C3 stay penalty: Apply penalties for consecutive days in non-home cities ---
+# --- C3 stay penalty (MERGED RUNS, matching the official scorer) ----------
+#
+# The official scorer (src/validator.py:score_schedule) builds a per-day
+# location map: day d_0 -> v_0, then for each transition k->k+1 the team
+# is at v_{k+1} on days [d_k+1 .. d_{k+1}].  Contiguous days at the same
+# venue form a single RUN; the convex stay penalty
+#     eta * max(0, run_length - x0)^q
+# is applied once per run (and only when v != home venue).
+#
+# To match this in CP-SAT we maintain per-position cumulative run-length
+# variables `run_len[T,k]` and apply the penalty only at run-endpoints.
+#
+# Recurrence (for each team T, positions k=1..14):
+#   run_len[T,1] = 1                              # team starts at v_0 on d_0
+#   for k >= 2:
+#     same_v[k] = (v[k] == v[k-1])
+#     gap[k]    = d[k] - d[k-1]
+#     run_len[T,k] = run_len[T,k-1] + gap[k]      if same_v[k]
+#                  = gap[k]                       otherwise
+#
+# End-of-run boolean:
+#   end_run[T,k] = (v[k] != v[k+1])  for k < 14
+#   end_run[T,14] = 1
+#
+# Not-at-home boolean:
+#   not_home[T,k] = (v[k] != home_index(T))
+#
+# Contribution at position k:
+#   pen_k = end_run[T,k] AND not_home[T,k] * STAY_TABLE[run_len[T,k]]
+# --------------------------------------------------------------------------
 MAX_STAY_PEN = max(STAY_TABLE)
+MAX_RUN_LEN = DAYS  # an upper bound; tightest is ~56
+
 for c in team_codes:
     M_T = matches_with_team[c]
+    home_idx = V_INDEX[home_venue[c]]
+
+    # Pre-build same_v[k] for k=2..14 -- "is the venue identical to prev pos?"
+    same_v = {}
     for k in range(2, MATCHES_PER_TEAM + 1):
-        # gap to current position (will be the stay length at venue_at_pos[T,k])
-        gap = model.NewIntVar(2, DAYS, f"sg_{c}_k{k}")
-        model.Add(gap == seq_day[(c, k)] - seq_day[(c, k - 1)])
-        spen = model.NewIntVar(0, MAX_STAY_PEN, f"sp_{c}_k{k}")
-        model.AddElement(gap, STAY_TABLE, spen)
+        sv = model.NewBoolVar(f"same_v_{c}_k{k}")
+        same_v[k] = sv
+        model.Add(venue_at_pos[(c, k)] == venue_at_pos[(c, k - 1)]).OnlyEnforceIf(sv)
+        model.Add(venue_at_pos[(c, k)] != venue_at_pos[(c, k - 1)]).OnlyEnforceIf(sv.Not())
 
-        # Not-at-home indicator at position k.
-        nh_terms = []
-        for mi in M_T:
-            m = matches[mi]
-            if m.home != c:
-                # T is the visitor.  Always non-home venue.
-                nh_terms.append(pos[(c, mi, k)])
-            else:
-                # T is host.  Non-home iff is_alt[mi] = 1.
-                ax = model.NewBoolVar(f"hostalt_{c}_k{k}_m{mi}")
-                model.AddBoolAnd([pos[(c, mi, k)], is_alt[mi]]).OnlyEnforceIf(ax)
-                model.AddBoolOr(
-                    [pos[(c, mi, k)].Not(), is_alt[mi].Not()]
-                ).OnlyEnforceIf(ax.Not())
-                nh_terms.append(ax)
-        nh = model.NewBoolVar(f"nh_{c}_k{k}")
-        model.Add(nh == sum(nh_terms))
+    # gap[k] = d[k] - d[k-1]
+    gap_v = {}
+    for k in range(2, MATCHES_PER_TEAM + 1):
+        g = model.NewIntVar(2, DAYS, f"c3gap_{c}_k{k}")
+        model.Add(g == seq_day[(c, k)] - seq_day[(c, k - 1)])
+        gap_v[k] = g
 
-        # contrib = spen * nh
+    # run_len[k] recurrence
+    run_len = {1: model.NewConstant(1)}
+    for k in range(2, MATCHES_PER_TEAM + 1):
+        rl = model.NewIntVar(0, MAX_RUN_LEN, f"rl_{c}_k{k}")
+        # If same venue: rl = run_len[k-1] + gap[k]
+        model.Add(rl == run_len[k - 1] + gap_v[k]).OnlyEnforceIf(same_v[k])
+        # If different venue: rl = gap[k]  (length at the new venue v_{k} is
+        # the days [d_{k-1}+1 .. d_{k}] = gap days)
+        model.Add(rl == gap_v[k]).OnlyEnforceIf(same_v[k].Not())
+        run_len[k] = rl
+
+    # end_run[k] -- is this position the last in its venue-run?
+    end_run = {}
+    for k in range(1, MATCHES_PER_TEAM):
+        er = model.NewBoolVar(f"er_{c}_k{k}")
+        # end_run[k] iff v[k] != v[k+1]
+        model.Add(venue_at_pos[(c, k)] != venue_at_pos[(c, k + 1)]).OnlyEnforceIf(er)
+        model.Add(venue_at_pos[(c, k)] == venue_at_pos[(c, k + 1)]).OnlyEnforceIf(er.Not())
+        end_run[k] = er
+    end_run[MATCHES_PER_TEAM] = model.NewConstant(1)
+
+    # not_home[k] -- is v[k] different from the home venue of T?
+    not_home = {}
+    for k in range(1, MATCHES_PER_TEAM + 1):
+        nh = model.NewBoolVar(f"c3nh_{c}_k{k}")
+        model.Add(venue_at_pos[(c, k)] != home_idx).OnlyEnforceIf(nh)
+        model.Add(venue_at_pos[(c, k)] == home_idx).OnlyEnforceIf(nh.Not())
+        not_home[k] = nh
+
+    # Apply penalty at each (T, k): pen_k = end_run AND not_home * stay_table[run_len]
+    for k in range(1, MATCHES_PER_TEAM + 1):
+        # stay_pen_lookup[k] = STAY_TABLE[run_len[k]]
+        sp = model.NewIntVar(0, MAX_STAY_PEN, f"sp_{c}_k{k}")
+        model.AddElement(run_len[k], STAY_TABLE, sp)
+
+        # active = end_run[k] AND not_home[k]
+        if isinstance(end_run[k], cp_model.IntVar):
+            active = model.NewBoolVar(f"c3act_{c}_k{k}")
+            model.AddBoolAnd([end_run[k], not_home[k]]).OnlyEnforceIf(active)
+            model.AddBoolOr([end_run[k].Not(), not_home[k].Not()]).OnlyEnforceIf(active.Not())
+        else:
+            # end_run is a Constant(1) at k=14 -> active just equals not_home
+            active = not_home[k]
+
+        # contrib = sp * active  (bool * int big-M envelope)
         c3 = model.NewIntVar(0, MAX_STAY_PEN, f"c3_{c}_k{k}")
-        model.Add(c3 <= MAX_STAY_PEN * nh)
-        model.Add(c3 <= spen)
-        model.Add(c3 >= spen - MAX_STAY_PEN * (1 - nh))
+        model.Add(c3 <= MAX_STAY_PEN * active)
+        model.Add(c3 <= sp)
+        model.Add(c3 >= sp - MAX_STAY_PEN * (1 - active))
         pen_terms.append(c3)
 
-print("[model] C3 installed.")
+print("[model] C3 installed (merged-run interpretation).")
 
 
 # --- C4 density penalty ---------------------------------------------------
@@ -516,7 +576,7 @@ for c in team_codes:
 print("[model] C4 installed.")
 
 
-# --- C5 gap penalty: Penalize deviations from the target rest gap ---
+# --- C5 gap penalty -------------------------------------------------------
 MAX_GAP_PEN = max(GAP_TABLE)
 for c in team_codes:
     for k in range(2, MATCHES_PER_TEAM + 1):
@@ -551,7 +611,6 @@ model.Maximize(sum(rev_terms) - sum(pen_terms))
 # ===========================================================================
 # SOLVE
 # ===========================================================================
-# Configure the solver with time limits and parallel processing workers
 solver = cp_model.CpSolver()
 solver.parameters.max_time_in_seconds = TIME_LIMIT_S
 solver.parameters.num_search_workers = 8
@@ -584,7 +643,9 @@ for d in range(1, DAYS + 1):
 
 assert len(result) == DAYS
 
+# Official schema (src/models.py:Schedule.load_from_file) requires a JSON
+# object with a top-level "matches" array.  We honour that here.
 with open(OUTPUT_PATH, "w") as fh:
-    json.dump(result, fh, indent=2)
+    json.dump({"matches": result}, fh, indent=2)
 
 print(f"[done] wrote {OUTPUT_PATH}  ({len(result)} matches)")
