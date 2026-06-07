@@ -1,21 +1,3 @@
-"""
-score.py -- Independent re-computation of the objective J from schedule.json.
-
-Reads the schedule produced by `solver.py` and recomputes every revenue /
-penalty term using the PDF formulas directly (NO solver-internal scaling,
-NO integer approximations).  Use this to:
-
-  1. Cross-check the solver's claimed objective against the spec.
-  2. Catch any silent drift between the model's linearisations and the
-     true non-linear scoring rule used by the official grader.
-
-Usage:
-    python score.py
-
-Exits 0 always (this is a *report*, not a pass/fail gate; for pass/fail
-on hard constraints use validate.py).
-"""
-
 import json
 import os
 from collections import defaultdict
